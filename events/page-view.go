@@ -13,6 +13,7 @@ import (
 
 type PageViewEvent struct {
 	PageURL     string `json:"page_url" binding:"required"`
+	Pathname    string `json:"pathname" binding:"required"`
 	ReferrerURL string `json:"referrer_url"`
 	Timestamp   int64  `json:"timestamp" binding:"required"`
 	SessionID   string `json:"session_id"`
@@ -36,6 +37,7 @@ func (event *PageViewEvent) validate() bool {
 func (event *PageViewEvent) store() error {
 	doc := bson.M{
 		"pageURL":     event.PageURL,
+		"pathname":    event.Pathname,
 		"referrerURL": event.ReferrerURL,
 		"timestamp":   time.Unix(event.Timestamp, 0),
 		"sessionID":   event.SessionID,

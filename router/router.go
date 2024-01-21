@@ -1,10 +1,12 @@
 package router
 
 import (
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"glimpseguru-tracker/authent"
 	"glimpseguru-tracker/events"
 	"net/http"
+	"time"
 )
 
 func processTrackingEvent(c *gin.Context, event events.Event) {
@@ -32,7 +34,13 @@ func trackPageView(c *gin.Context) {
 
 func New() *gin.Engine {
 	r := gin.Default()
-
+	r.Use(cors.New(cors.Config{
+		AllowAllOrigins: true,
+		AllowMethods:    []string{"POST", "OPTIONS"},
+		AllowHeaders:    []string{"x-api-key", "x-website-id", "Content-Type"},
+		ExposeHeaders:   []string{"Content-Length"},
+		MaxAge:          12 * time.Hour,
+	}))
 	rTracking := r.Group("/track/")
 	rTracking.Use(identityValidationMiddleware())
 	rTracking.POST("/pageview", trackPageView)

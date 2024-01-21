@@ -7,17 +7,16 @@ import (
 	"os"
 )
 
-var logger *slog.Logger
-var
+var Logger *slog.Logger
 
 func main() {
-	router := router.New()
-	errRouter := router.Run()
+	r := router.New()
+	errRouter := r.Run()
 	if errRouter != nil {
 		panic(fmt.Sprintf("Unable to run router, %e", errRouter))
 	}
 }
 
 func init() {
-	logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
+	Logger = slog.New(slog.NewTextHandler(os.Stdout, nil))
 }

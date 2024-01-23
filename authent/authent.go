@@ -41,9 +41,6 @@ func GetUser(apiKey string, websiteID string) (User, error) {
 		"websites.websiteID": websiteID,
 	}
 	result := db.MongoDb.Collection("users").FindOne(context.Background(), filter)
-	slog.Info(fmt.Sprintf("filter: %v", filter))
-	slog.Info(fmt.Sprintf("mongodb: %v", db.MongoDb.Name()))
-	slog.Info(fmt.Sprintf("mongodb: %v", db.MongoDb.Collection("users")))
 	if result.Err() != nil {
 		slog.Error("no user found for apiKey and website", slog.String("api key", apiKey), slog.String("website", websiteID), slog.String("error", result.Err().Error()))
 		return user, errors.New("no user found for apiKey and website")

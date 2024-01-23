@@ -13,11 +13,11 @@ import (
 
 func processTrackingEvent(c *gin.Context, event events.Event) {
 	var errUser error
+	var user authent.User
+	var isUserStruct bool
 	if storedUser, exists := c.Get("user"); exists {
 		// Type assert to ensure it's of the Identity type
-		if user, ok := storedUser.(authent.User); ok {
-			errUser = event.SetUser(user)
-		} else {
+		if user, isUserStruct = storedUser.(authent.User); !isUserStruct {
 			errUser = errors.New("cannot bind user from context")
 		}
 	} else {
@@ -28,7 +28,7 @@ func processTrackingEvent(c *gin.Context, event events.Event) {
 		return
 	}
 
-	if errProcess := event.Process(); errProcess != nil {
+	if errProcess := event.Process(user.ID, user.Website.ID); errProcess != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errProcess.Error()})
 		return
 	}
@@ -45,6 +45,16 @@ func trackPageView(c *gin.Context) {
 	processTrackingEvent(c, &event)
 }
 
+func trackSessionEnd(c *gin.Context) {
+	var event events.SessionEvent
+	if err := c.ShouldBindJSON(&event); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	event.Type = events.End
+	processTrackingEvent(c, &event)
+}
+
 func New() *gin.Engine {
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
@@ -57,6 +67,7 @@ func New() *gin.Engine {
 	rTracking := r.Group("/track/")
 	rTracking.Use(identityValidationMiddleware())
 	rTracking.POST("/pageview", trackPageView)
+	rTracking.POST("/sessionend", trackSessionEnd)
 
 	return r
 }

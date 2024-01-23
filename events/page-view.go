@@ -3,9 +3,9 @@ package events
 import (
 	"context"
 	"errors"
-	"glimpseguru-tracker/authent"
 	"glimpseguru-tracker/db"
 	"go.mongodb.org/mongo-driver/bson"
+	"log/slog"
 	"time"
 )
 
@@ -42,8 +42,8 @@ func (event *PageViewEvent) store() error {
 		"sessionID":   event.SessionID,
 		"deviceType":  event.DeviceType,
 		"sourceType":  event.SourceType,
-		"user_id":     event.UserID,
-		"website_id":  event.WebsiteID,
+		"userID":      event.UserID,
+		"websiteID":   event.WebsiteID,
 	}
 
 	// Insert into MongoDB collection
@@ -51,16 +51,30 @@ func (event *PageViewEvent) store() error {
 	return err
 }
 
-func (event *PageViewEvent) Process() error {
+func (event *PageViewEvent) Process(userID string, websiteID string) error {
+	event.SetUser(userID, websiteID)
 	if !event.validate() {
 		return errors.New("invalid event")
 	}
 
-	return event.store()
+	errStore := event.store()
+	if errStore != nil {
+		return errStore
+	}
+
+	session := SessionEvent{
+		Timestamp: event.Timestamp,
+		Type:      Start,
+		SessionID: event.SessionID,
+	}
+	errSession := session.Process(userID, websiteID)
+	if errSession != nil {
+		slog.Error("error processing session", slog.String("error", errSession.Error()))
+	}
+	return nil
 }
 
-func (event *PageViewEvent) SetUser(user authent.User) error {
-	event.UserID = user.ID
-	event.WebsiteID = user.Website.ID
-	return nil
+func (event *PageViewEvent) SetUser(userID string, websiteID string) {
+	event.UserID = userID
+	event.WebsiteID = websiteID
 }

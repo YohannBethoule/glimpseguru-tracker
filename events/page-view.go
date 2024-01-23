@@ -3,11 +3,9 @@ package events
 import (
 	"context"
 	"errors"
-	"github.com/gin-gonic/gin"
 	"glimpseguru-tracker/authent"
 	"glimpseguru-tracker/db"
 	"go.mongodb.org/mongo-driver/bson"
-	"log/slog"
 	"time"
 )
 
@@ -19,7 +17,8 @@ type PageViewEvent struct {
 	SessionID   string `json:"session_id"`
 	DeviceType  string `json:"device_type"`
 	SourceType  string `json:"source_type"`
-	*authent.User
+	WebsiteID   string `json:"website_id"`
+	UserID      string `json:"user_id"`
 }
 
 func (event *PageViewEvent) validate() bool {
@@ -27,7 +26,7 @@ func (event *PageViewEvent) validate() bool {
 		return false
 	}
 
-	if event.User == nil {
+	if event.WebsiteID == "" || event.UserID == "" {
 		return false
 	}
 
@@ -43,7 +42,8 @@ func (event *PageViewEvent) store() error {
 		"sessionID":   event.SessionID,
 		"deviceType":  event.DeviceType,
 		"sourceType":  event.SourceType,
-		"user":        event.User,
+		"user_id":     event.UserID,
+		"website_id":  event.WebsiteID,
 	}
 
 	// Insert into MongoDB collection
@@ -59,17 +59,8 @@ func (event *PageViewEvent) Process() error {
 	return event.store()
 }
 
-func (event *PageViewEvent) SetUser(c *gin.Context) error {
-	if storedUser, exists := c.Get("user"); exists {
-		// Type assert to ensure it's of the Identity type
-		if user, ok := storedUser.(authent.User); ok {
-			event.User = &user
-		} else {
-			return errors.New("invalid user identity")
-		}
-	} else {
-		slog.Warn("no user identity found in context")
-		return errors.New("user identity required")
-	}
+func (event *PageViewEvent) SetUser(user authent.User) error {
+	event.UserID = user.ID
+	event.WebsiteID = user.Website.ID
 	return nil
 }

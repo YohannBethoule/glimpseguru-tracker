@@ -1,8 +1,10 @@
 package events
 
-import "github.com/gin-gonic/gin"
+import (
+	"glimpseguru-tracker/authent"
+)
 
 type Event interface {
-	SetUser(c *gin.Context) error
+	SetUser(user authent.User) error
 	Process() error
 }

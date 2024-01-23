@@ -1,6 +1,8 @@
 package router
 
 import (
+	"errors"
+	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"glimpseguru-tracker/authent"
@@ -10,11 +12,22 @@ import (
 )
 
 func processTrackingEvent(c *gin.Context, event events.Event) {
-	errUser := event.SetUser(c)
+	var errUser error
+	if storedUser, exists := c.Get("user"); exists {
+		// Type assert to ensure it's of the Identity type
+		if user, ok := storedUser.(authent.User); ok {
+			errUser = event.SetUser(user)
+		} else {
+			errUser = errors.New("cannot bind user from context")
+		}
+	} else {
+		errUser = errors.New("no user found in context")
+	}
 	if errUser != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": errUser.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Errorf("error setting user: %e", errUser)})
 		return
 	}
+
 	if errProcess := event.Process(); errProcess != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": errProcess.Error()})
 		return

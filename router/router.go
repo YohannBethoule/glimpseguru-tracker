@@ -55,6 +55,16 @@ func trackSessionEnd(c *gin.Context) {
 	processTrackingEvent(c, &event)
 }
 
+func trackCustomEvent(c *gin.Context) {
+	var event events.CustomEvent
+	if err := c.ShouldBindJSON(&event); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	processTrackingEvent(c, &event)
+}
+
 func New() *gin.Engine {
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
@@ -68,6 +78,7 @@ func New() *gin.Engine {
 	rTracking.Use(identityValidationMiddleware())
 	rTracking.POST("/pageview", trackPageView)
 	rTracking.POST("/sessionend", trackSessionEnd)
+	rTracking.POST("/customevent", trackCustomEvent)
 
 	return r
 }
